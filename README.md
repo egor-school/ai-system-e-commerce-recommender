@@ -58,34 +58,30 @@ flowchart LR
 ```mermaid
 flowchart TB
     Client[Внешний клиент / Web-интерфейс] -->|HTTP POST /api/v1/predict| API[FastAPI Gateway]
-    
+
     subgraph AppContainer [Контейнер приложения (FastAPI Service)]
         API --> Auth[Модуль аутентификации API-Key]
         Auth --> Validator[Pydantic Request Validator]
-        Validator --> Preprocessing[Текстовый препроцессинг & Эмбеддер]
+        Validator --> Preprocessing[Feature Preprocessing Pipeline]
+        Preprocessing --> InferenceEngine[Model Inference Engine]
         
-        Preprocessing --> VectorSearch[Движок поиска контекста]
-        VectorSearch --> InferenceEngine[LLM Inference Engine]
-        InferenceEngine --> BusinessLogic[Прикладные бизнес-правила & Судья]
+        InferenceEngine --> BusinessLogic[Прикладные бизнес-правила]
     end
-    
-    subgraph ArtifactStore [Хранилище моделей и признаков]
-        Preprocessing -.->|Загрузка Onnx весов v1.2| EmbeddingsFile[(Embedding Storage / MinIO)]
-        InferenceEngine -.->|Локальный инференс весов v2.0| LLMFile[(LLM Registry / MinIO / vLLM)]
+
+    subgraph ArtifactStore [Хранилище моделей]
+        InferenceEngine -.->|Загрузка весов v1.0.0| ModelFile[(Model Storage / MLflow / S3)]
     end
-    
-    subgraph DataStore [Слой персистентности базы знаний]
-        VectorSearch -->|Поиск топ-K релевантных чанков| VectorDB[(Векторная БД Qdrant / pgvector)]
-        BusinessLogic -->|Запись истории диалога и лога аудита| AppDB[(PostgreSQL / SQLite)]
+
+    subgraph DataStore [Слой персистентности]
+        BusinessLogic -->|Запись факта прогноза и метаданных| AppDB[(PostgreSQL / SQLite)]
     end
-    
-    subgraph ObservabilityStack [Контур мониторинга и эксплуатации]
-        API -.->|Сбор задержек и HTTP метрик| MetricsEndpoint[/metrics Endpoint/]
-        BusinessLogic -.->|Экспорт векторов запросов| DriftStorage[(ClickHouse / Аналитические логи)]
-        BusinessLogic -.->|Структурированные JSON-логи| LogsOutput[JSON Logger]
+
+    subgraph ObservabilityStack [Контур мониторинга]
+        API -.->|Сбор метрик HTTP / Latency| MetricsEndpoint[/metrics Endpoint/]
+        BusinessLogic -.->|Структурированные логи| LogsOutput[JSON Logger]
     end
-    
-    BusinessLogic -->|HTTP 200: Stream / JSON Response| Client
+
+    BusinessLogic -->|HTTP 200: JSON Response| Client
 ```
 
 |   |   |   |   |   |
