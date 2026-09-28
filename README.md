@@ -169,9 +169,9 @@ class PredictionResponse(BaseModel):
 }
 ```
 
-### 4.2. Системные эндпоинты
+### Системные эндпоинты
 
-*   `GET /health` — проверка состояния сервиса и готовности модели:
+`GET /health` — проверка состояния сервиса и готовности модели:
     ```json
     {
       "status": "healthy",
@@ -180,6 +180,6 @@ class PredictionResponse(BaseModel):
       "uptime_seconds": 3600
     }
     ```
-*   `GET /metrics` — выдача технических и кастомных метрик для Prometheus в формате OpenMetrics.
+`GET /metrics` — выдача технических и кастомных метрик для Prometheus в формате OpenMetrics.
 
 ---
