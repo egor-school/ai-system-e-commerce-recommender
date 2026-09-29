@@ -59,7 +59,7 @@ flowchart LR
 flowchart TB
     Client[Внешний клиент / Web-интерфейс] -->|HTTP POST /api/v1/predict| API[FastAPI Gateway]
 
-    subgraph AppContainer [Контейнер приложения (FastAPI Service)]
+    AppContainer [Контейнер приложения (FastAPI Service)]
         API --> Auth[Модуль аутентификации API-Key]
         Auth --> Validator[Pydantic Request Validator]
         Validator --> Preprocessing[Feature Preprocessing Pipeline]
