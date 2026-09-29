@@ -59,7 +59,7 @@ flowchart LR
 flowchart LR
     Client[Внешний клиент / Web-интерфейс] -->|HTTP POST /api/v1/predict| API[FastAPI Gateway]
 
-    subgraph SEMI AppContainer [Контейнер приложения (FastAPI Service)]
+    subgraph AppContainer [Контейнер приложения]
         API --> Auth[Модуль аутентификации API-Key]
         Auth --> Validator[Pydantic Request Validator]
         Validator --> Preprocessing[Feature Preprocessing Pipeline]
