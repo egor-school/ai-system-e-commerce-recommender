@@ -56,7 +56,7 @@ flowchart LR
 ---
 
 ```mermaid
-%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+flowchart LR
     Client[Внешний клиент / Web-интерфейс] -->|HTTP POST /api/v1/predict| API[FastAPI Gateway]
 
     subgraph AppContainer [Контейнер приложения (FastAPI Service)]
