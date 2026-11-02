@@ -67,22 +67,19 @@ python demo.py
 
 **Схема прохождения тестового сценария:**
 ```mermaid
-sequenceDiagram
-    participant T as Тест (pytest)
-    participant S as RecommendationService
-    participant R as Recommender (Модель)
+flowchart LR
+    T[Тест pytest] --> S[RecommendationService]
+    S --> R[Модель Recommender]
     
-    T->>S: recommend(PredictionRequest)
-    S->>R: predict(item_id)
+    R -->|Успех| C[Кандидаты]
+    R -->|Сбой| E[ModelUnavailableError]
     
-    alt Модель недоступна (битый JSON)
-        R-->>S: raise ModelUnavailableError
-        S-->>T: ModelUnavailableError (Тест 4 пройден)
-    else Модель доступна
-        R-->>S: RawModelOutput (кандидаты)
-        S->>S: Применение правил (фильтрация, fallback)
-        S-->>T: PredictionResult (Тесты 1, 2, 3, 5 пройдены)
-    end
+    C --> F[Применение правил]
+    F --> P[PredictionResult]
+    
+    E -->|Тест 4| T
+    P -->|Тесты 1-3, 5-6| T
+
 ```
 
 **Сводная таблица результатов:**
@@ -98,31 +95,21 @@ sequenceDiagram
 
 ## 7. Ограничения компонента и ожидаемое развитие на следующих лабораторных
 
-**Ограничения:**
-- Модель является baseline (точность Recall@K, NDCG не измеряется).
+**Ограничения текущего компонента:**
+- Модель является baseline (co-occurrence), офлайн-метрики качества (Recall@K, NDCG) не измеряются.
 - Синтетический мини-датасет (10 строк) не отражает реальное поведение покупателей.
-- Нет ANN-поиска, CatBoost, Redis, DVC, PostgreSQL и Docker.
+- Нет воспроизводимого конвейера данных, контейнеризации и CI/CD.
+- Отсутствует сквозное логирование (trace_id) и резервный сценарий (fallback) на уровне API.
 
 **План развития:**
+1. Переход от синтетического словаря `USER_HISTORY` к полноценному CSV-датасету. Настройка DVC для версионирования данных, валидация контрактов через Pandera и обучение препроцессора (joblib) с защитой от Data Leakage.
+2. Обертывание текущего `RecommendationService` в веб-сервис на FastAPI (эндпоинты `/predict` и `/health`). Создание многослойного Dockerfile для запуска сервиса в изолированном контейнере.
+3.  Настройка пайплайна GitHub Actions для автоматического прогона тестов, сборки Docker-образа и Smoke-тестирования. Внедрение JSON-логирования с `trace_id` и паттерна Fallback (возврат эвристики при сбое модели). Составление Model Card.
 
-```mermaid
-gantt
-    title План развития AI-системы
-    dateFormat  YYYY-MM-DD
-    axisFormat  %m-%d
-    section ЛР № 3 (Текущая)
-    Изолированный компонент и тесты :done,    des1, 2026-10-01, 2026-10-15
-    section Следующие ЛР
-    Воспроизводимый конвейер данных (DVC) :active,  des2, 2026-10-16, 2026-10-30
-    Контейнеризация (Docker)              :         des3, 2026-11-01, 2026-11-15
-    REST API (FastAPI) и CI/CD            :         des4, 2026-11-16, 2026-11-30
-
-```
-
-## 8. Изменения архитектуры ЛР № 2, если они потребовались
+## 8. Изменения архитектуры ЛР № 2
 
 Изменения минимальны и не нарушают исходную архитектуру:
 
 1. В контракт добавлено поле `manual_review_required` для сценариев деградации.
-2. Модель из ЛР № 2 (CatBoost + ANN) заменена на baseline co-occurrence для соответствия ограничениям по времени (4 часа) согласно ТЗ.
+2. Модель из ЛР № 2 (CatBoost + ANN) заменена на baseline co-occurrence для соответствия с ограничением объёма из ТЗ.
 3. Поле `device_type` в ЛР № 3 не используется, так как не влияет на логику инференса.
