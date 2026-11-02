@@ -17,6 +17,7 @@ flowchart LR
     Inference -->|RawModelOutput| Service
     Service -->|PredictionResult| Client
 
+```
 ## 3. Входной и выходной контракт
 
 **Вход (`PredictionRequest`):**
