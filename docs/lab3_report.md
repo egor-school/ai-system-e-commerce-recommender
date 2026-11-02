@@ -16,3 +16,48 @@ flowchart LR
     Inference -->|JSON| Model[(models/cooccurrence.json)]
     Inference -->|RawModelOutput| Service
     Service -->|PredictionResult| Client
+
+## 3. Входной и выходной контракт
+
+**Вход (`PredictionRequest`):**
+- `item_id` (строка, ID текущего товара)
+- `user_id` (строка, ID пользователя)
+- `current_cart_items` (список строк, товары в корзине)
+
+**Выход (`PredictionResult`):**
+- `request_id` (UUIDv4 для аудита)
+- `user_id`
+- `recommendations` (список объектов `{item_id, score}`, где `score` от 0.0 до 1.0)
+- `model_version` (версия модели, выдавший прогноз)
+- `manual_review_required` (флаг необходимости ручной проверки)
+
+**Ошибки:**
+- `pydantic.ValidationError` — неверный вход (пустой ID, неверный тип данных).
+- `ModelUnavailableError` — артефакт модели отсутствует или поврежден.
+
+## 4. Используемая модель и источник тестовых данных
+
+**Модель:** Baseline-модель на основе алгоритма **Item-to-Item Co-occurrence** (совместная встречаемость товаров). Модель не использует нейросети и обучается за счет подсчета частот совместных покупок.
+
+**Артефакт:** Веса сохраняются в безопасном формате `models/cooccurrence.json` (без использования pickle).
+
+**Источник данных:** Синтетический мини-датасет (10 пользователей × 1-3 товара), зашитый в скрипт обучения `scripts/train_model.py`. Персональные данные отсутствуют.
+
+## 5. Команда установки зависимостей и локального запуска
+
+```bash
+# 1. Создание и активация окружения
+python -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+
+# 2. Установка зависимостей
+pip install -r requirements.txt
+
+# 3. Обучение модели (создание models/cooccurrence.json)
+python -m scripts.train_model
+
+# 4. Запуск тестов (8 проверок)
+python -m pytest -q
+
+# 5. Демонстрация работы
+python demo.py
