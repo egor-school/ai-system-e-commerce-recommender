@@ -71,10 +71,8 @@ sequenceDiagram
     participant T as Тест (pytest)
     participant S as RecommendationService
     participant R as Recommender (Модель)
-    
     T->>S: recommend(PredictionRequest)
     S->>R: predict(item_id)
-    
     alt Модель недоступна (битый JSON)
         R-->>S: raise ModelUnavailableError
         S-->>T: ModelUnavailableError (Тест 4 пройден)
@@ -83,7 +81,6 @@ sequenceDiagram
         S->>S: Применение правил (фильтрация, fallback)
         S-->>T: PredictionResult (Тесты 1, 2, 3, 5 пройдены)
     end
-
 ```
 **Сводная таблица результатов (8 проверок, все PASSED):**
 
