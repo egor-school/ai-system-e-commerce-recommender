@@ -62,3 +62,34 @@ python -m pytest -q
 
 # 5. Демонстрация работы
 python demo.py
+
+## 6. Таблица тестовых случаев и результатов
+
+**Схема прохождения тестового сценария:**
+```mermaid
+sequenceDiagram
+    participant T as Тест (pytest)
+    participant S as RecommendationService
+    participant R as Recommender (Модель)
+    
+    T->>S: recommend(PredictionRequest)
+    S->>R: predict(item_id)
+    
+    alt Модель недоступна (битый JSON)
+        R-->>S: raise ModelUnavailableError
+        S-->>T: ModelUnavailableError (Тест 4 пройден)
+    else Модель доступна
+        R-->>S: RawModelOutput (кандидаты)
+        S->>S: Применение правил (фильтрация, fallback)
+        S-->>T: PredictionResult (Тесты 1, 2, 3, 5 пройдены)
+    end
+**Сводная таблица результатов (8 проверок, все PASSED):**
+
+| Сценарий | Входные данные | Ожидание | Результат |
+|---|---|---|---|
+| 1. Валидный запрос | `PROD_PHONE`, `u1` | Корректный ответ со скором 0..1 | PASSED |
+| 2. Разные товары | `PROD_PHONE` и `PROD_LAPTOP` | Списки рекомендаций отличаются | PASSED |
+| 3. Неверный ввод | Пустой `user_id`, `item_id`, пробелы | Ошибка `ValidationError` | PASSED |
+| 4. Fallback | `PROD_UNKNOWN` | Список популярных, `review=False` | PASSED |
+| 5. Нет артефакта | Путь к несуществующему файлу | Ошибка `ModelUnavailableError` | PASSED |
+| 6. Битый JSON | Файл с невалидным содержимым | Ошибка `ModelUnavailableError` | PASSED |
