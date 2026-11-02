@@ -62,20 +62,30 @@ python -m pytest -q
 
 # 5. Демонстрация работы
 python demo.py
-
+```
 ## 6. Таблица тестовых случаев и результатов
 
 **Схема прохождения тестового сценария:**
 ```mermaid
-flowchart TD
-    A[Тест pytest] --> B[RecommendationService]
-    B --> C[Модель Recommender]
-    C -->|Успех| D[Кандидаты]
-    C -->|Сбой| E[ModelUnavailableError]
-    D --> F[Применение правил]
-    F --> G[PredictionResult]
+sequenceDiagram
+    participant T as Тест (pytest)
+    participant S as RecommendationService
+    participant R as Recommender (Модель)
+    
+    T->>S: recommend(PredictionRequest)
+    S->>R: predict(item_id)
+    
+    alt Модель недоступна (битый JSON)
+        R-->>S: raise ModelUnavailableError
+        S-->>T: ModelUnavailableError (Тест 4 пройден)
+    else Модель доступна
+        R-->>S: RawModelOutput (кандидаты)
+        S->>S: Применение правил (фильтрация, fallback)
+        S-->>T: PredictionResult (Тесты 1, 2, 3, 5 пройдены)
+    end
 ```
-**Сводная таблица результатов (8 проверок, все PASSED):**
+
+**Сводная таблица результатов:**
 
 | Сценарий | Входные данные | Ожидание | Результат |
 |---|---|---|---|
