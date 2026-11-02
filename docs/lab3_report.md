@@ -67,9 +67,9 @@ python demo.py
 
 **Схема прохождения тестового сценария:**
 ```mermaid
-flowchart LR
-    T[Тест pytest] --> S[RecommendationService]
-    S --> R[Модель Recommender]
+flowchart TD
+    T[Тест pytest] -->|Вызов| S[RecommendationService]
+    S -->|predict| R[Модель Recommender]
     
     R -->|Успех| C[Кандидаты]
     R -->|Сбой| E[ModelUnavailableError]
@@ -77,8 +77,8 @@ flowchart LR
     C --> F[Применение правил]
     F --> P[PredictionResult]
     
-    E -->|Тест 4| T
-    P -->|Тесты 1-3, 5-6| T
+    P -->|Проверка assert| T
+    E -->|Проверка assert| T
 
 ```
 
