@@ -52,10 +52,17 @@ def test_different_history_different_result(service):
         history=["TRACK_004_JAZZ"]
     ))
     
-    ids1 = {r.item_id for r in r1.recommendations}
-    ids2 = {r.item_id for r in r2.recommendations}
-    # Наборы рекомендованных треков должны различаться
-    assert ids1 != ids2
+    # Берем самый первый (самый релевантный) трек из выдачи
+    top1 = r1.recommendations[0].item_id
+    top2 = r2.recommendations[0].item_id
+    
+    # Проверяем, что топ-1 для рокера содержит ROCK, а для джазмена - JAZZ
+    # (в названии трека зашит жанр)
+    assert "ROCK" in top1 or "INDIE" in top1 or "POP" in top1
+    assert "JAZZ" in top2 or "CLASSICAL" in top2 or "CHILL" in top2
+    
+    # Или проверяем, что они вообще разные
+    assert top1 != top2
 
 
 # Тест 3. Неверное/пограничное значение обрабатывается контролируемо.
