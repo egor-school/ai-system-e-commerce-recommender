@@ -7,9 +7,13 @@ class PredictionRequest(BaseModel):
 
     @field_validator("history")
     @classmethod
-    def check_not_empty(cls, v: List[str]) -> List[str]:
+    def check_history_not_empty(cls, v: List[str]) -> List[str]:
         if not v:
             raise ValueError("history cannot be empty")
+        # Добавляем проверку, что каждый элемент в списке не пустой
+        for track_id in v:
+            if not track_id.strip():
+                raise ValueError("track IDs in history must not be blank")
         return v
 
 class RecommendedItem(BaseModel):
