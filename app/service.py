@@ -1,11 +1,9 @@
 """Оркестрация: валидация -> модель -> ПРИКЛАДНЫЕ ПРАВИЛА -> результат."""
 from __future__ import annotations
-
 import uuid
 from typing import Optional
 
 from app.inference import RawRecommendation, Recommender
-from app.preprocessing import normalize_cart, normalize_id
 from app.schemas import (
     ModelUnavailableError, PredictionRequest, PredictionResult, RecommendedItem,
 )
@@ -22,7 +20,8 @@ class RecommendationService:
 
     def recommend(self, request: PredictionRequest) -> PredictionResult:
         try:
-            raw = self._recommender.predict(request.item_id, limit=200)
+            # ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ: передаем request.history
+            raw = self._recommender.predict(request.history, limit=200)
         except ModelUnavailableError:
             raise
         except Exception as exc:
@@ -35,23 +34,14 @@ class RecommendationService:
         candidates: list[RawRecommendation],
         model_version: str,
     ) -> PredictionResult:
-        cart = normalize_cart(request.current_cart_items)
-        current = normalize_id(request.item_id)
+        # Фильтрация по порогу скора
+        filtered = [c for c in candidates if c.score >= SCORE_THRESHOLD]
 
-        filtered = [
-            c for c in candidates
-            if normalize_id(c.item_id) not in cart
-            and normalize_id(c.item_id) != current
-            and c.score >= SCORE_THRESHOLD
-        ]
-
+        # Fallback на популярное (если пусто)
         if not filtered:
-            filtered = [
-                c for c in self._recommender.popular()
-                if normalize_id(c.item_id) not in cart
-                and normalize_id(c.item_id) != current
-            ]
+            filtered = self._recommender.popular()
 
+        # Отказ, если и популярного нет (вырожденный артефакт)
         if not filtered:
             return PredictionResult(
                 request_id=str(uuid.uuid4()),
@@ -64,8 +54,7 @@ class RecommendationService:
         return PredictionResult(
             request_id=str(uuid.uuid4()),
             user_id=request.user_id,
-            recommendations=[RecommendedItem(item_id=c.item_id, score=c.score)
-                             for c in filtered[:10]],
+            recommendations=[RecommendedItem(item_id=c.item_id, score=c.score) for c in filtered[:10]],
             model_version=model_version,
             manual_review_required=False,
         )
