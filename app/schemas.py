@@ -1,26 +1,20 @@
-"""Входной и выходной контракты компонента рекомендаций."""
 from typing import List
-
 from pydantic import BaseModel, Field, field_validator
 
-
 class PredictionRequest(BaseModel):
-    item_id: str = Field(min_length=1, max_length=64)
     user_id: str = Field(min_length=1, max_length=64)
-    current_cart_items: List[str] = Field(default_factory=list)
+    history: List[str] = Field(min_length=1, description="ID прослушанных/лайкнутых треков")
 
-    @field_validator("user_id", "item_id")
+    @field_validator("history")
     @classmethod
-    def not_blank(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("must not be blank")
-        return v.strip()
-
+    def check_not_empty(cls, v: List[str]) -> List[str]:
+        if not v:
+            raise ValueError("history cannot be empty")
+        return v
 
 class RecommendedItem(BaseModel):
     item_id: str
     score: float = Field(ge=0.0, le=1.0)
-
 
 class PredictionResult(BaseModel):
     request_id: str
@@ -28,7 +22,6 @@ class PredictionResult(BaseModel):
     recommendations: List[RecommendedItem]
     model_version: str
     manual_review_required: bool
-
 
 class ModelUnavailableError(RuntimeError):
     """Артефакт модели отсутствует или повреждён."""
