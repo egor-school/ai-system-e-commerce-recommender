@@ -1,56 +1,64 @@
-"""Разовое обучение item-to-item co-occurrence на мини-датасете."""
 import json
-from collections import Counter, defaultdict
+import random
 from pathlib import Path
 
-from app.preprocessing import normalize_id
+MODEL_VERSION = "music-bow-v1"
+OUTPUT = Path(__file__).resolve().parent.parent / "models" / "music_model.json"
 
-MODEL_VERSION = "cooc-v1"
-OUTPUT = Path(__file__).resolve().parent.parent / "models" / "cooccurrence.json"
+KEYWORDS = [
+    "rock", "pop", "rap", "jazz", "classical", "electronic", 
+    "calm", "energetic", "sad", "happy", "dance", "guitar"
+]
 
-USER_HISTORY = {
-    "u1": ["PROD_PHONE", "PROD_CASE", "PROD_CHARGER"],
-    "u2": ["PROD_PHONE", "PROD_CASE"],
-    "u3": ["PROD_PHONE", "PROD_HEADPHONES"],
-    "u4": ["PROD_LAPTOP", "PROD_MOUSE", "PROD_BAG"],
-    "u5": ["PROD_LAPTOP", "PROD_MOUSE"],
-    "u6": ["PROD_LAPTOP", "PROD_BAG"],
-    "u7": ["PROD_HEADPHONES", "PROD_CHARGER"],
-    "u8": ["PROD_MOUSE", "PROD_BAG"],
-    "u9": ["PROD_PHONE", "PROD_HEADPHONES", "PROD_CASE"],
-    "u10": ["PROD_LAPTOP"],
+TAG_PROFILES = {
+    "rock":      ["rock", "energetic", "guitar"],
+    "pop":       ["pop", "happy", "dance"],
+    "rap":       ["rap", "energetic", "dance"],
+    "jazz":      ["jazz", "calm", "sad"],
+    "classical": ["classical", "calm", "sad"],
+    "electronic":["electronic", "energetic", "dance"],
+    "indie":     ["rock", "pop", "sad", "guitar"],
+    "chill":     ["electronic", "calm", "happy"]
 }
 
+def generate_dataset(num_tracks: int = 100) -> dict[str, list[str]]:
+    random.seed(42)
+    dataset = {}
+    genres = list(TAG_PROFILES.keys())
+    
+    for i in range(num_tracks):
+        genre = random.choice(genres)
+        tags = list(TAG_PROFILES[genre])
+        if random.random() > 0.5:
+            extra_tag = random.choice(["happy", "sad", "calm", "energetic"])
+            if extra_tag not in tags:
+                tags.append(extra_tag)
+        
+        track_id = f"TRACK_{i+1:03d}_{genre.upper()}"
+        dataset[track_id] = tags
+    return dataset
+
 def main() -> None:
-    co: dict[str, Counter] = defaultdict(Counter)
-    popularity: Counter = Counter()
+    dataset = generate_dataset(100)
+    vectors = {}
 
-    for items in USER_HISTORY.values():
-        norm = [normalize_id(x) for x in items]
-        for i in norm:
-            popularity[i] += 1
-            for j in norm:
-                if i != j:
-                    co[i][j] += 1
+    for track_id, tags_list in dataset.items():
+        vector = [1 if kw in tags_list else 0 for kw in KEYWORDS]
+        vectors[track_id] = vector
 
-    cooc = {}
-    for i, counter in co.items():
-        total = sum(counter.values())
-        cooc[i] = {j: round(c / total, 4) for j, c in counter.items()}
-
-    top_popular = [{"item_id": k, "score": round(v / max(popularity.values()), 4)}
-                   for k, v in popularity.most_common(10)]
+    random.seed(42)
+    popular_ids = random.sample(list(dataset.keys()), 10)
 
     payload = {
         "version": MODEL_VERSION,
-        "cooc": cooc,
-        "popular": top_popular,
-        "known_items": sorted(popularity.keys()),
+        "keywords": KEYWORDS,
+        "vectors": vectors,
+        "popular": [{"item_id": tid, "score": 1.0} for tid in popular_ids]
     }
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
-                      encoding="utf-8")
-    print(f"Model saved: {OUTPUT} (version {MODEL_VERSION})")
+    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Model saved: {OUTPUT} (version {MODEL_VERSION}, {len(vectors)} tracks)")
 
 if __name__ == "__main__":
     main()
