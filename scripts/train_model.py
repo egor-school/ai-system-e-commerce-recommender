@@ -28,12 +28,7 @@ def generate_dataset(num_tracks: int = 100) -> dict[str, list[str]]:
     
     for i in range(num_tracks):
         genre = random.choice(genres)
-        tags = list(TAG_PROFILES[genre])
-        if random.random() > 0.5:
-            extra_tag = random.choice(["happy", "sad", "calm", "energetic"])
-            if extra_tag not in tags:
-                tags.append(extra_tag)
-        
+        tags = list(TAG_PROFILES[genre])        
         track_id = f"TRACK_{i+1:03d}_{genre.upper()}"
         dataset[track_id] = tags
     return dataset
