@@ -8,7 +8,7 @@ from app.schemas import (
     ModelUnavailableError, PredictionRequest, PredictionResult, RecommendedItem,
 )
 
-SCORE_THRESHOLD = 0.20
+SCORE_THRESHOLD = 0.01
 
 class RecommendationService:
     def __init__(self, recommender: Optional[Recommender] = None):
